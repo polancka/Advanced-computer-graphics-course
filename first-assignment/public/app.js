@@ -1,5 +1,6 @@
 async function fetchAndParsePoints() {
     // Getting points from the splat and storing them into a point array with information about them
+    //burek
     const response = await fetch('nike.splat');
     const arrayBuffer = await response.arrayBuffer();
     const data = new DataView(arrayBuffer);
