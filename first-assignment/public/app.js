@@ -1,9 +1,10 @@
-//TODO: try to figure out orbitControls
+//TODO: try to figure out orbitControls + check if the splats turn to the view point
+
 
 async function fetchAndParsePoints() {
     // Getting points from the splat and storing them into a point array with information about them
     //burek
-    const response = await fetch('nike.splat');
+    const response = await fetch('nike.splat'); //set different parameters for scaling based on the name of the file
     const arrayBuffer = await response.arrayBuffer();
     const data = new DataView(arrayBuffer);
 
@@ -36,6 +37,14 @@ async function fetchAndParsePoints() {
 
         points.push({ position, scale, color, rotation });
     }
+
+    //sorting the points based on their distance from the camera
+    // points.sort((a, b) => {
+    //     const depthA = Math.sqrt(a.position[0]**2 + a.position[1]**2 + a.position[2]**2);
+    //     const depthB = Math.sqrt(b.position[0]**2 + b.position[1]**2 + b.position[2]**2);
+    //     return depthB - depthA; // Sort in descending order based on depth
+    // });
+
     console.log("Got points")
     return points;
 }
@@ -74,7 +83,15 @@ function init3DScene(points) {
         document.body.appendChild(renderer.domElement);
         
         // Adjust camera position so we can see the points
-        camera.position.set(0,0,10)
+        camera.position.set(0,0,5)
+
+        // Order points based on depth (distance from camera)
+        const cameraPosition = new THREE.Vector3(); // Assuming you have access to the camera position
+        points.sort((a, b) => {
+            const depthA = cameraPosition.distanceTo(new THREE.Vector3(...a.position));
+            const depthB = cameraPosition.distanceTo(new THREE.Vector3(...b.position));
+            return depthB - depthA; // Sort in descending order based on depth
+        });
 
         // //const controls = new OrbitControls(camera, renderer.domElement);
         // controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
@@ -87,10 +104,12 @@ function init3DScene(points) {
         const geometry = new THREE.BufferGeometry();
         const positions = [];
         const colors = [];
-
+      
        for(let i = 0; i < points.length; i++) {
             // Add positions
+            //const scaledPosition = points[i].position.map(coord => coord * scaling_factor);
             positions.push(...points[i].position);
+
             const color = new THREE.Color();
             color.setRGB(points[i].color[0] / 255, points[i].color[1] / 255, points[i].color[2] / 255);
             colors.push(color.r, color.g, color.b);
@@ -105,7 +124,7 @@ function init3DScene(points) {
 
         //translate/rotate/scale
         pointCloud.rotateX(2*Math.PI/3);
-        pointCloud.scale.set(2, 2, 2);
+        //pointCloud.scale.set(0.5, 0.5, 0.5);
         pointCloud.position.set(0, 0, 0);
 
         scene.add(pointCloud);
@@ -119,18 +138,47 @@ function init3DScene(points) {
         }
         
         animate();
+        return scene;
+}
+
+function updatePointsGeometry(scene, scaling_factor) {
+    // Update point geometry based on the new scaling factor
+    const new_size = 0.03 * scaling_factor; // Adjust the base size according to the scaling factor
+
+    // Update size of all existing points
+    scene.traverse((object) => {
+        if (object instanceof THREE.Points) {
+            object.material.size = new_size;
+        }
+    });
 }
 
 
 async function loadAndInitScene() {
+    //scaling factor 
+    const def_scaling_factor = 1.0; //default value before user input
+    let scaling_factor = def_scaling_factor;
+    const scalingSlider = document.getElementById('scaling-slider');
+
     try {
         const points = await fetchAndParsePoints();
         console.log("Points saved")
-        init3DScene(points);
+        scene = init3DScene(points, scaling_factor);
+
+         // Update scaling factor when the slider value changes
+        scalingSlider.addEventListener('input', () => {
+        scaling_factor = parseFloat(scalingSlider.value);
+        //console.log("Current scaling factor")
+        //console.log(scaling_factor);
+        updatePointsGeometry(scene, scaling_factor);
+        // Call a function to update the points geometry based on the new scaling factor
+    });
+
         
     } catch (error) {
         console.error("Failed to load or initialize the scene:", error);
     }
+
 }
 
 // Function that loads points and initializes the scene.
