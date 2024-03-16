@@ -1,9 +1,6 @@
-//TODO: try to figure out orbitControls + check if the splats turn to the view point
-
-
+//TODO: try to figure out orbitControls 
 async function fetchAndParsePoints() {
     // Getting points from the splat and storing them into a point array with information about them
-    //burek
     const response = await fetch('nike.splat'); //set different parameters for scaling based on the name of the file
     const arrayBuffer = await response.arrayBuffer();
     const data = new DataView(arrayBuffer);
@@ -38,61 +35,71 @@ async function fetchAndParsePoints() {
         points.push({ position, scale, color, rotation });
     }
 
-    //sorting the points based on their distance from the camera
-    // points.sort((a, b) => {
-    //     const depthA = Math.sqrt(a.position[0]**2 + a.position[1]**2 + a.position[2]**2);
-    //     const depthB = Math.sqrt(b.position[0]**2 + b.position[1]**2 + b.position[2]**2);
-    //     return depthB - depthA; // Sort in descending order based on depth
-    // });
 
     console.log("Got points")
     return points;
 }
 
-function calculatePointCloudCenter(points) {
-    if (points.length === 0) {
-        // Handle the case where there are no points in the cloud
-        return new THREE.Vector3();
-    }
-
-    // Initialize the sum of positions
-    const sum = new THREE.Vector3();
-
-    // Calculate the sum of all point positions
-    for (const point of points) {
-        const position = new THREE.Vector3().fromArray(point.position);
-        sum.add(position);
-    }
-
-    // Divide the sum by the number of points to get the average position (center)
-    const center = sum.divideScalar(points.length);
-
-    return center;
+//function for calculating the distance between a point and a camera 
+function calculateDistance(point, cameraX, cameraY, cameraZ) {
+    // Calculate Euclidean distance between a point and the camera
+    const dx = point.position[0] - cameraX;
+    const dy = point.position[1] - cameraY;
+    const dz = point.position[2] - cameraZ;
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
+
+// function calculatePointCloudCenter(points) {
+//     if (points.length === 0) {
+//         // Handle the case where there are no points in the cloud
+//         return new THREE.Vector3();
+//     }
+
+//     // Initialize the sum of positions
+//     const sum = new THREE.Vector3();
+
+//     // Calculate the sum of all point positions
+//     for (const point of points) {
+//         const position = new THREE.Vector3().fromArray(point.position);
+//         sum.add(position);
+//     }
+
+//     // Divide the sum by the number of points to get the average position (center)
+//     const center = sum.divideScalar(points.length);
+
+//     return center;
+// }
 
 
 function init3DScene(points) {
+
     console.log("rendering")
+        const camera_x = 0;
+        const camera_y = 0;
+        const camera_z = 5;         
 
         // Scene setup
         const scene = new THREE.Scene();
-        //scene.background = new THREE.Color(0x000000); // e.g., set to black
+        scene.background = new THREE.Color(0xffffff); // e.g., set to black
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer();
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
         
-        // Adjust camera position so we can see the points
-        camera.position.set(0,0,5)
+        // Adjust camera position
+        camera.position.set(camera_x,camera_y,camera_z)
 
-        // Order points based on depth (distance from camera)
-        const cameraPosition = new THREE.Vector3(); // Assuming you have access to the camera position
-        points.sort((a, b) => {
-            const depthA = cameraPosition.distanceTo(new THREE.Vector3(...a.position));
-            const depthB = cameraPosition.distanceTo(new THREE.Vector3(...b.position));
-            return depthB - depthA; // Sort in descending order based on depth
+        // TODO: Order points based on depth (distance from camera)  --> min to max and vice versa pictures!
+        points.sort((a, b) => { //pairwise sort
+            const distanceA = calculateDistance(a, camera_x, camera_y, camera_z);
+            const distanceB = calculateDistance(b, camera_x, camera_y, camera_z);
+            return distanceB - distanceA;
         });
 
+        console.log(points[1].position);
+        console.log(points[2].position);
+
+        //TODO: Manual controls using orbit controls - dependencies issues
         // //const controls = new OrbitControls(camera, renderer.domElement);
         // controls.enableDamping = true; // an animation loop is required when either damping or auto-rotation are enabled
         // controls.dampingFactor = 0.25; // increase for more damping, decrease for less
@@ -100,32 +107,61 @@ function init3DScene(points) {
         // controls.maxPolarAngle = Math.PI / 2; 
 
         //Points representation:
-        
         const geometry = new THREE.BufferGeometry();
         const positions = [];
         const colors = [];
       
        for(let i = 0; i < points.length; i++) {
-            // Add positions
-            //const scaledPosition = points[i].position.map(coord => coord * scaling_factor);
-            positions.push(...points[i].position);
+            // // Add positions
+            // //const scaledPosition = points[i].position.map(coord => coord * scaling_factor);
+            // positions.push(...points[i].position);
 
-            const color = new THREE.Color();
-            color.setRGB(points[i].color[0] / 255, points[i].color[1] / 255, points[i].color[2] / 255);
-            colors.push(color.r, color.g, color.b);
+            // //TODO: implement alpha blending
+            // const color = new THREE.Color();
+            // color.setRGB(points[i].color[0] / 255, points[i].color[1] / 255, points[i].color[2] / 255);
+            // colors.push(color.r, color.g, color.b);
+
+            // // Extract RGBA components
+            // const r = points[i].color[0] / 255;
+            // const g = points[i].color[1] / 255;
+            // const b = points[i].color[2] / 255;
+            // const a = points[i].color[3] / 255; // Alpha component
+
+            // // Pre-multiply RGB components by alpha (straight alpha)
+            // const premultipliedR = r * a;
+            // const premultipliedG = g * a;
+            // const premultipliedB = b * a;
+
+            let alpha = points[i].color[3] / 255;
+            let baseColor = new THREE.Color(
+            points[i].color[0] / 255,
+            points[i].color[1] / 255,
+            points[i].color[2] / 255
+            );
+
+            // Modulate each component by alpha (assuming white background, hence 1 - alpha)
+            colors.push(
+            (1 - alpha) + alpha * baseColor.r,
+            (1 - alpha) + alpha * baseColor.g,
+            (1 - alpha) + alpha * baseColor.b
+            );
+
+            // Add positions and colors (with pre-multiplied alpha) to the arrays
+            positions.push(...points[i].position);
+            
         }
 
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
         geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 
         
-        const material = new THREE.PointsMaterial({ size: 0.03, vertexColors: true });
+        const material = new THREE.PointsMaterial({ size: 0.03, vertexColors: true , transparent: true});
         const pointCloud = new THREE.Points(geometry,material);
 
         //translate/rotate/scale
         pointCloud.rotateX(2*Math.PI/3);
-        //pointCloud.scale.set(0.5, 0.5, 0.5);
-        pointCloud.position.set(0, 0, 0);
+        pointCloud.scale.set(1, 1, 1);
+        pointCloud.position.set(0, 1, 0);
 
         scene.add(pointCloud);
       
