@@ -1,7 +1,9 @@
-//TODO: try to figure out orbitControls 
+//TODO: try to figure out orbitControl dependencies
+
+
 async function fetchAndParsePoints() {
     // Getting points from the splat and storing them into a point array with information about them
-    const response = await fetch('nike.splat'); //set different parameters for scaling based on the name of the file
+    const response = await fetch('train.splat'); //set different parameters for scaling based on the name of the file
     const arrayBuffer = await response.arrayBuffer();
     const data = new DataView(arrayBuffer);
 
@@ -34,8 +36,6 @@ async function fetchAndParsePoints() {
 
         points.push({ position, scale, color, rotation });
     }
-
-
     console.log("Got points")
     return points;
 }
@@ -49,55 +49,49 @@ function calculateDistance(point, cameraX, cameraY, cameraZ) {
     return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
-// function calculatePointCloudCenter(points) {
-//     if (points.length === 0) {
-//         // Handle the case where there are no points in the cloud
-//         return new THREE.Vector3();
-//     }
+function sortPoints(points, camera_x,camera_y,camera_z){
+    points.sort((a, b) => { //sort from max to min distance to the camera
+        const distanceA = calculateDistance(a, camera_x, camera_y, camera_z);
+        const distanceB = calculateDistance(b, camera_x, camera_y, camera_z);
+        return distanceB - distanceA;
+    });
 
-//     // Initialize the sum of positions
-//     const sum = new THREE.Vector3();
+    return points;
 
-//     // Calculate the sum of all point positions
-//     for (const point of points) {
-//         const position = new THREE.Vector3().fromArray(point.position);
-//         sum.add(position);
-//     }
+}
 
-//     // Divide the sum by the number of points to get the average position (center)
-//     const center = sum.divideScalar(points.length);
+function gaussianFalloff(distance, sigma) {
+    // Calculate the Gaussian falloff factor
+    const exponent = -0.5 * (distance / sigma) ** 2;
+    return Math.exp(exponent);
+}
 
-//     return center;
-// }
-
-
-function init3DScene(points) {
+//fucntion for initailizing the scene, camera, pointcloud, setting the colors of the splats
+function init3DScene(points, sigma) {
 
     console.log("rendering")
-        const camera_x = 0;
-        const camera_y = 0;
-        const camera_z = 5;         
+        const camera_x = 0; // nike : 5, plush: 5 , train : 
+        const camera_y = 0; // nike : 0, plush: 0  , train : 
+        const camera_z = 5;  // nike : 0, plush: 0  , train :        
 
         // Scene setup
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0xffffff); // e.g., set to black
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        scene.background = new THREE.Color(0xffffff); // set to white
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000); //human eye perspective
         const renderer = new THREE.WebGLRenderer();
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
         
-        // Adjust camera position
+        // Adjust camera position based on the splat
         camera.position.set(camera_x,camera_y,camera_z)
 
-        // TODO: Order points based on depth (distance from camera)  --> min to max and vice versa pictures!
-        points.sort((a, b) => { //pairwise sort
-            const distanceA = calculateDistance(a, camera_x, camera_y, camera_z);
-            const distanceB = calculateDistance(b, camera_x, camera_y, camera_z);
-            return distanceB - distanceA;
+        const center = new THREE.Vector3();
+        const falloffFactors = points.map((point) => {
+        const distance = new THREE.Vector3().fromArray(point.position).distanceTo(center);
+        return gaussianFalloff(distance, sigma);
         });
 
-        console.log(points[1].position);
-        console.log(points[2].position);
+       sortPoints(points,camera_x,camera_y,camera_z);
 
         //TODO: Manual controls using orbit controls - dependencies issues
         // //const controls = new OrbitControls(camera, renderer.domElement);
@@ -110,61 +104,63 @@ function init3DScene(points) {
         const geometry = new THREE.BufferGeometry();
         const positions = [];
         const colors = [];
-      
+
+        const backColor = new THREE.Color();
+        backColor.setRGB(1 ,1, 1);
+
+      console.log(points[0].color[3])
+      console.log(points[1].color[3])
+      console.log(points[2].color[3])
        for(let i = 0; i < points.length; i++) {
-            // // Add positions
-            // //const scaledPosition = points[i].position.map(coord => coord * scaling_factor);
-            // positions.push(...points[i].position);
-
+           positions.push(...points[i].position);
             // //TODO: implement alpha blending
-            // const color = new THREE.Color();
-            // color.setRGB(points[i].color[0] / 255, points[i].color[1] / 255, points[i].color[2] / 255);
-            // colors.push(color.r, color.g, color.b);
+            const color = new THREE.Color();
+            color.setRGB(points[i].color[0] / 255, points[i].color[1] / 255, points[i].color[2] / 255);
+            //const alpha = falloffFactors[i];
+            colors.push(color.r, color.g, color.b);
+            //colors.push(alpha);
 
-            // // Extract RGBA components
-            // const r = points[i].color[0] / 255;
-            // const g = points[i].color[1] / 255;
-            // const b = points[i].color[2] / 255;
-            // const a = points[i].color[3] / 255; // Alpha component
 
-            // // Pre-multiply RGB components by alpha (straight alpha)
-            // const premultipliedR = r * a;
-            // const premultipliedG = g * a;
-            // const premultipliedB = b * a;
-
-            let alpha = points[i].color[3] / 255;
-            let baseColor = new THREE.Color(
-            points[i].color[0] / 255,
-            points[i].color[1] / 255,
-            points[i].color[2] / 255
-            );
-
-            // Modulate each component by alpha (assuming white background, hence 1 - alpha)
-            colors.push(
-            (1 - alpha) + alpha * baseColor.r,
-            (1 - alpha) + alpha * baseColor.g,
-            (1 - alpha) + alpha * baseColor.b
-            );
-
-            // Add positions and colors (with pre-multiplied alpha) to the arrays
-            positions.push(...points[i].position);
+            // // //color and alpha of the point
+            // let alpha = points[i].color[3] / 255;
+            // let baseColor = new THREE.Color();
+            // baseColor.setRGB(
+            // points[i].color[0] / 255,
+            // points[i].color[1] / 255,
+            // points[i].color[2] / 255
+            // );
+    
+            // //Modulate each component by alpha (assuming white background, hence 1 - alpha)
+            // colors.push(
+            // (1 - alpha)*backColor.r + alpha * baseColor.r,
+            // (1 - alpha)*backColor.g + alpha * baseColor.g,
+            // (1 - alpha)*backColor.b + alpha * baseColor.b
+            // );
             
         }
+        console.log(colors[1].a)
 
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
         geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
 
         
         const material = new THREE.PointsMaterial({ size: 0.03, vertexColors: true , transparent: true});
+
+        material.blending = THREE.CustomBlending;
+        material.blendSrc = THREE.SrcAlphaFactor;
+        material.blendDst = THREE.OneMinusSrcAlphaFactor;
+        material.blendEquation = THREE.AddEquation;
+
+
         const pointCloud = new THREE.Points(geometry,material);
 
         //translate/rotate/scale
-        pointCloud.rotateX(2*Math.PI/3);
-        pointCloud.scale.set(1, 1, 1);
-        pointCloud.position.set(0, 1, 0);
+        pointCloud.rotateX(Math.PI); // nike : 2*Math.PI/3, plush: 3*Math.PI/4) , train : Math.PI
+        //pointCloud.rotateY(Math.PI); //only for train 
+        pointCloud.scale.set(1, 1, 1);    // nike : 1,1,1, plush: 1.2, 1.2, 1.2, train :  1,1,1
+        pointCloud.position.set(0, 0, 0);  // nike : 0,1,0 plush: 0,1,0 , train : 0,0,0
 
         scene.add(pointCloud);
-      
         
         // Render loop
         function animate() {
@@ -189,6 +185,11 @@ function updatePointsGeometry(scene, scaling_factor) {
     });
 }
 
+function updatePointsGauss(scene, sigma){
+  //TODO
+
+}
+
 
 async function loadAndInitScene() {
     //scaling factor 
@@ -196,21 +197,25 @@ async function loadAndInitScene() {
     let scaling_factor = def_scaling_factor;
     const scalingSlider = document.getElementById('scaling-slider');
 
+    //listeners for parameter changes
     try {
+        let sigma = 3.0;
         const points = await fetchAndParsePoints();
         console.log("Points saved")
-        scene = init3DScene(points, scaling_factor);
+        scene = init3DScene(points, sigma);
 
          // Update scaling factor when the slider value changes
         scalingSlider.addEventListener('input', () => {
         scaling_factor = parseFloat(scalingSlider.value);
-        //console.log("Current scaling factor")
-        //console.log(scaling_factor);
+    
         updatePointsGeometry(scene, scaling_factor);
-        // Call a function to update the points geometry based on the new scaling factor
-    });
+        });
 
-        
+        sigmaSlider.addEventListener('input', () => {
+            sigma = parseFloat(sigmaSlider.value);
+        ;
+            updatePointsGauss(scene, sigma);
+        });
     } catch (error) {
         console.error("Failed to load or initialize the scene:", error);
     }

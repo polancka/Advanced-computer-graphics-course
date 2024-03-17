@@ -7,17 +7,52 @@
     <style>
         body { margin: 0; }
         canvas { display: block; }
-        #scaling-slider { position: absolute; top: 10px; left: 10px; width: 300px;}
-   
-       
+        #scaling-slider-container { position: absolute; top: 10px; left: 10px; width: 300px;}
+        .slider { width: 100%; margin-bottom: 10px; }
+        .slider-label { display: inline-block; width: 80px; }
+        .slider-text { display: inline-block; width: 40px; }
+        .slider-row { margin-bottom: 10px; }
     </style>
 </head>
 <body>
     <!--<h3>Rendering of a point cloud</h3>-->
 
-    <input id="scaling-slider" type="range" min="0.1" max="3.0" step="0.05" value="1.0">
-    <script src="/app.js" ></script>
+    <div id="scaling-slider-container">
+        <div class="slider-row">
+            <input id="scaling-slider" class="slider" type="range" min="0.1" max="3.0" step="0.05" value="1.0">
+            <label class="slider-label" for="scaling-slider">Parameter s:</label>
+            <span id="scaling-text" class="slider-text">1.0</span>
+        </div>
+        
+        <div class="slider-row">
+            <input id="sigma-slider" class="slider" type="range" min="0.1" max="10.0" step="0.5" value="1.0">
+            <label class="slider-label" for="sigma-slider">Sigma for Gaussian:</label>
+            <span id="sigma-text" class="slider-text">1.0</span>
+        </div>
+
+       
+    </div>
+    
+    <script src="/app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
-  
+    <script>
+        // Add event listener to scaling slider to update the text dynamically
+        const scalingSlider = document.getElementById('scaling-slider');
+        const scalingText = document.getElementById('scaling-text');
+        
+        scalingSlider.addEventListener('input', () => {
+            scalingText.textContent = scalingSlider.value;
+        });
+
+        // Add event listener to sigma slider to update the text dynamically
+        const sigmaSlider = document.getElementById('sigma-slider');
+        const sigmaText = document.getElementById('sigma-text');
+        
+        sigmaSlider.addEventListener('input', () => {
+            sigmaText.textContent = sigmaSlider.value;
+        });
+
+       
+    </script>
 </body>
 </html>
