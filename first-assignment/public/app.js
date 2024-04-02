@@ -1,9 +1,7 @@
 //TODO: try to figure out orbitControl dependencies
-
-
 async function fetchAndParsePoints() {
     // Getting points from the splat and storing them into a point array with information about them
-    const response = await fetch('train.splat'); //set different parameters for scaling based on the name of the file
+    const response = await fetch('plush.splat'); //set different parameters for scaling based on the name of the file
     const arrayBuffer = await response.arrayBuffer();
     const data = new DataView(arrayBuffer);
 
@@ -70,9 +68,9 @@ function gaussianFalloff(distance, sigma) {
 function init3DScene(points, sigma) {
 
     console.log("rendering")
-        const camera_x = 0; // nike : 5, plush: 5 , train : 
-        const camera_y = 0; // nike : 0, plush: 0  , train : 
-        const camera_z = 5;  // nike : 0, plush: 0  , train :        
+        const camera_x = 0; // nike : 5, plush: 5 , train : 0
+        const camera_y = 0; // nike : 0, plush: 0  , train : 0
+        const camera_z = 5;  // nike : 0, plush: 0  , train :  5      
 
         // Scene setup
         const scene = new THREE.Scene();
@@ -155,10 +153,11 @@ function init3DScene(points, sigma) {
         const pointCloud = new THREE.Points(geometry,material);
 
         //translate/rotate/scale
-        pointCloud.rotateX(Math.PI); // nike : 2*Math.PI/3, plush: 3*Math.PI/4) , train : Math.PI
+        pointCloud.rotateX(3*Math.PI/4); // nike : 2*Math.PI/3, plush: 3*Math.PI/4) , train : Math.PI
         //pointCloud.rotateY(Math.PI); //only for train 
-        pointCloud.scale.set(1, 1, 1);    // nike : 1,1,1, plush: 1.2, 1.2, 1.2, train :  1,1,1
-        pointCloud.position.set(0, 0, 0);  // nike : 0,1,0 plush: 0,1,0 , train : 0,0,0
+        pointCloud.scale.set(1.2, 1.2, 1.2);    // nike : 1,1,1, plush: 1.2, 1.2, 1.2, train :  1,1,1
+        pointCloud.position.set( 0,1,0);  // nike : 0,1,0 plush: 0,1,0 , train : 0,0,0
+      
 
         scene.add(pointCloud);
         
