@@ -1,3 +1,10 @@
 output
 NRG-DN-01
 node_modules
+second-assignment/PathTracerFramework/PathTracerFramework/bin
+second-assignment/PathTracerFramework/PathTracerFramework/Helpers
+second-assignment/PathTracerFramework/PathTracerFramework/packages
+second-assignment/PathTracerFramework/PathTracerFramework/Properties
+test_for_c
+.vs
+second-assignment/.vscode
