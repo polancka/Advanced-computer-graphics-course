@@ -1,0 +1,33 @@
+{
+  "emitters": [
+    {
+      "type": "disk",
+      "parameters": {
+        "position": [0, 0, 0],
+        "direction": [0.5, 1, 0],
+        "radius": 1,
+        "rate": 50
+      },
+      "particles": {
+        "mass": [1, 1],
+        "lifetime": [1, 2],
+        "velocity": [5, 20]
+      }
+    }
+  ],
+  "forces": [
+    {
+      "type": "drag",
+      "parameters": {
+        "wind": [0, 0, 0],
+        "drag": 1
+      }
+    },
+    {
+      "type": "acceleration",
+      "parameters": {
+        "acceleration": [0, -9.81, 0]
+      }
+    }
+  ]
+}
