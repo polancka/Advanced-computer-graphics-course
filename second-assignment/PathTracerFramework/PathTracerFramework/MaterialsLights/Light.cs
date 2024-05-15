@@ -33,6 +33,7 @@ namespace PathTracer
             return light.EstimateLWithIS(it, s) / lightPdf;
         }
 
+    
         private Spectrum EstimateLWithIS(SurfaceInteraction it, Scene s)
         {
             // Sample light source with importance sampling

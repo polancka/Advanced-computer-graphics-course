@@ -26,46 +26,66 @@ namespace PathTracer
         ///  
         public Spectrum Li(Ray r, Scene s)
         {
-            var L = Spectrum.Create(0);
-            if (s == null) { 
-                Debug.WriteLine("No scene");
+            Random random = new Random();
+            var L = Spectrum.ZeroSpectrum;
+            Spectrum beta = Spectrum.Create(1.0);
+
+            if (s == null)
+            {
+                Debug.WriteLine("no scene");
                 return null;
             }
             else
-            {
-                int maxDepth = 10;
-                L = Spectrum.Create(0);
-                var beta = 1;
-                //var nbounces = 0;
+            {   
+                int maxdepth = 30;
 
-                for (int i = 0; i < maxDepth; i++)
+                for (int i = 0; i < maxdepth; i++)
                 {
                     var intersect = s.Intersect(r);
-                    if (intersect.Item1 == null) {
+                    (double? distance, SurfaceInteraction intersection) = intersect;
+                    if (!distance.HasValue)
+                    {
                         break;
                     }
-                    //Debug.WriteLine(intersect.Item2.Obj.ToString());
-                    //var wo = -r;
-                    //TODO: Check if the light is hit
-                    //if(intersect.Item2.Obj == Light)
-                    //{
-                    //    //light was hit, find light emitted
-                    //    L = beta * intersect.Item2.Wo;
-                    //    break;
-                    //}
+                    
+                    
+                    //check if the light is hit
+                    if(intersection.Obj is Light)
+                    {   
+                        if(i == 0)
+                        {
+                           //light was hit, find light emitted
+                            L = L.AddTo(beta * intersection.Le(-r.d));
+
+                        }
+                        break;
+                    }
+
+                    //if light was not hit
+                    L = L.AddTo(beta * Light.UniformSampleOneLight(intersection, s));
+                    Shape obj = (Shape)intersection.Obj;
+
                     //sample random reflection
-                    var wi = Ray.Generate(intersect.Item2.Point, Vector3.ZeroVector);
+                    var new_info = obj.BSDF.Sample_f(-r.d, intersection);
+                    (Spectrum f, Vector3 wi, double pdf, bool isSpecular) = new_info;
+                    r = intersection.SpawnRay(wi);
                     //update beta
                     //(f,pr) <- bsdf(intersectm wi, wo)
                     //beta = beta * f * |cosfi|/pr
                     //r = wi
-                    //nbounces++
-                  
-                L.AddTo(Spectrum.Create(0.1));
-                }
-                //add L to image  AddSampleToImage(L,r)
-                //L = Spectrum.Create(random.Next(0,1));
+                    beta = beta * (f * Vector3.AbsDot(wi, intersection.Normal) / pdf);
 
+                    //Russian roullete for termination after 5 reflections
+                    if (i > 5)
+                    {
+                        double q = 1 - beta.c.Max();
+                        if (random.NextDouble() < q)
+                        {
+                            break;
+                        }
+                        beta = beta / (1 - q);
+                    }
+                }
             }
             return L;
         }
