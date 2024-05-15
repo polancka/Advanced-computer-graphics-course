@@ -11,6 +11,7 @@ from OpenGL.GLU import *
 from particle import Particle
 from forces import ConstantForce, DragForce, AccelerationForce,RadialForce
 from emitter import PointEmitter, DiskEmitter
+from math import pi, cos, sin
 
 #reads the json file and append instances of correct classes with all additional info
 def read_json(file_name):
@@ -41,6 +42,23 @@ def read_json(file_name):
 
     return list_emitters, list_forces
 
+def draw_disk(center, radius, segments):
+    """ Draw a disk centered at `center` with given `radius` and `segments` """
+    # Start drawing a triangle fan
+    glBegin(GL_TRIANGLE_FAN)
+
+    # Set the center of the disk
+    glVertex3f(center[0], center[1], center[2])
+
+    # Create points around the circle
+    for i in range(segments + 1):  # +1 to close the circle
+        angle = 2 * pi * i / segments
+        x = center[0] + radius * cos(angle)
+        y = center[1] + radius * sin(angle)
+        z = center[2]  # Disk lies in the XY plane, so z is constant
+        glVertex3f(x, y, z)
+
+    glEnd()
 
 def run_simulation(emiters, forces):
     pygame.init()
@@ -49,8 +67,8 @@ def run_simulation(emiters, forces):
     glEnable(GL_DEPTH_TEST)
 
     # Set up the camera
-    gluPerspective(45, (display[0]/display[1]), 0.1, 50.0)
-    glTranslatef(0.0, 0.0, -5)
+    gluPerspective(60, (display[0]/display[1]), 0.1, 100.0)
+    glTranslatef(7, 3, -10)
 
     x_rotation = y_rotation = 0
     clock = pygame.time.Clock()
@@ -82,25 +100,42 @@ def run_simulation(emiters, forces):
                 em_x, em_y, em_z = emitter.position
                 for _ in range(emitter.rate): 
                     direction = np.random.randn(3)
-                    # direction /= np.linalg.norm(direction)  # Normalize the direction vector
-
-                    # Generate a random speed #TODO: change to correct speed
                     speed = random.uniform(0.1, 1.0)
 
                     # Set the velocity vector
                     velocity = direction * speed
 
-                    # Add the point with initial position (0,0,0) and velocity
-                    points.append([em_x, em_y, em_z, velocity[0], velocity[1], velocity[2]])
-            else: #radial --> ajdust origin and possible direction
-                print("RADIAL not implemented yet")
+                    points.append([em_x, em_y, em_z, velocity[0], velocity[1], velocity[2], 0.0])
+            elif isinstance(emitter, DiskEmitter):
+                em_x, em_y, em_z = emitter.position  
+                em_x = em_x + random.uniform(-emitter.radius, emitter.radius)
+                em_y = em_y + random.uniform(-emitter.radius, emitter.radius)
+                for _ in range(emitter.rate): 
+                    direction = emitter.direction
+                    speed = 1
+
+                    # Set the velocity vector
+                    velocity = direction * speed
+
+                    points.append([em_x, em_y, em_z, velocity[0], velocity[1], velocity[2], 0.0])
+                
 
 
-        for point in points: #TODO: check for removing poitns based on their age based on emitter they came from
-            for i in range(3):  # Update x, y, and z coordinates separately
-                point[i] += point[i + 3] * dt  # Update position based on velocity
-            point[3] = point[3] + dt  # Increment the age of the point by the time since the last frame
-            points = [point for point in points if point[3] < 5.0]  # Remove points older than 5 seconds
+        new_points = []
+        for point in points:
+            for force in forces:
+                point[3] += force[0] * dt  # Apply force to velocity x
+                point[4] += force[1] * dt  # Apply force to velocity y
+                point[5] += force[2] * dt  # Apply force to velocity z
+
+            # Update position based on velocity
+            for i in range(3):
+                point[i] += point[i + 3] * dt
+           
+            point[6] += dt  # Increment age
+            if point[6] < 5.0:  # Keep points younger than 5 seconds
+                new_points.append(point)
+        points = new_points
         
         # Clear the screen and depth buffer
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
@@ -124,14 +159,19 @@ def run_simulation(emiters, forces):
         glColor3f(0.0, 0.0, 1.0)
         glVertex3f(0.0, 0.0, -5.0)
         glVertex3f(0.0, 0.0, 5.0)
-        glEnd()
+        glEnd() 
+
+        for emitter in emiters: 
+            if isinstance(emitter, DiskEmitter):
+                glColor3f(1, 1, 1)  # Set disk color to red
+                draw_disk(emitter.position, emitter.radius, 32)
         
 
         # Render points with color based on age
         for point in points:
             age = point[3]
             # Calculate color based on age
-            color = (1.0 - age / 5.0, 0.0, 0.0)  # Red component decreases with age
+            color = (1.0 , 0.0 + age / 5.0, 0.0)  # Red component decreases with age
             glColor3f(*color)
                      # Calculate distance from point to the camera
             distance = np.linalg.norm(point[:3])
@@ -145,6 +185,29 @@ def run_simulation(emiters, forces):
 
         pygame.display.flip()
 
+def main():
+    if len(sys.argv) > 1:
+        arg = sys.argv[1]
 
-emiters, forces = read_json('01-point.json')
-run_simulation(emiters, forces)
+        if arg == '2': 
+            emiters, forces = read_json('02-disk.json')
+        elif arg == '3': 
+            emiters, forces = read_json('03-radial.json')
+        elif arg == '4': 
+            emiters, forces = read_json('04-constant.json')
+        elif arg == '5': 
+            emiters, forces = read_json('05-masses.json')
+        elif arg == '6': 
+            emiters, forces = read_json('06-stress.json')
+    else:
+        emiters, forces = read_json('01-point.json')
+    for force in forces:
+        print(force)
+
+    #TODO: take this out, just for testing gravuty
+    forces = [(0,-9.81,0)]
+    run_simulation(emiters, forces)
+
+if __name__ == "__main__":
+    main()
+

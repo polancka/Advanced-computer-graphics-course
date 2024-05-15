@@ -1,10 +1,15 @@
 output
 NRG-DN-01
 node_modules
-second-assignment/PathTracerFramework/PathTracerFramework/bin
+second-assignment
 second-assignment/PathTracerFramework/PathTracerFramework/Helpers
 second-assignment/PathTracerFramework/PathTracerFramework/packages
 second-assignment/PathTracerFramework/PathTracerFramework/Properties
 test_for_c
 .vs
 second-assignment/.vscode
+seminar/neoznacene
+seminar/oznake
+seminar/sample
+second-assignment
+first-assignment

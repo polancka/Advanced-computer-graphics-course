@@ -2,3 +2,6 @@ This repository consists of code and report for a seminar topic titled "Automati
 uterine shapes from 3D ultrasound data”, 2024*. 
 
 The aim of the seminar is to obtain the mid-sagittal section from 3D meshes of uteri of healthy women. 
+
+Requirements: 
+- nibabel
