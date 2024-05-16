@@ -55,8 +55,8 @@ def plot_point_cloud(points, values):
     plt.show()
 
 
-def main(): 
-    file_path = 'sample/sample/annotations//04_13.nii.gz'  # Update this with the path to your .nii file
+def main(path): 
+    file_path = path  # Update this with the path to your .nii file
     volume_data = load_nifti(file_path)
     points, values = volume_to_point_cloud(volume_data, threshold=0.5)
     #plot_point_cloud(points, values)
