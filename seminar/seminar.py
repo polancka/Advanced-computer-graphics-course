@@ -10,8 +10,8 @@ points = import_to_point_cloud.main('sample/sample/annotations//04_15.nii.gz')
 #aligning the point cloud with PCA and OBB
 aligned_points, xy_points = align.main(points)
 
-#model surface (ellipse) to a projection of the uterus to XY plane (curvature is showing)
-#model_surface.main(points)
+#model surface  to a projection of the uterus to XY plane (curvature is showing)
+model_surface.main(aligned_points)
 
 #fix curvature and return a new point cloud
 #curve_fix.main(points)

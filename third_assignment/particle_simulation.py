@@ -25,9 +25,9 @@ def read_json(file_name):
 
     for emitter in emitters:
         if emitter['type'] == "point":
-            list_emitters.append(PointEmitter(emitter['parameters']['position'], emitter['parameters']['rate'], emitter['particles']['mass'], emitter['particles']['lifetime'], emitter['particles']['velocity']))
+            list_emitters.append(PointEmitter(emitter['parameters']['position'], emitter['parameters']['rate'], emitter['particles']['mass'], emitter['particles']['lifetime'][0], emitter['particles']['lifetime'][1],emitter['particles']['velocity']))
         elif emitter['type'] == "disk":
-            list_emitters.append(DiskEmitter(emitter['parameters']['position'], emitter['parameters']['radius'],emitter['parameters']['direction'], emitter['parameters']['rate'], emitter['particles']['mass'], emitter['particles']['lifetime'], emitter['particles']['velocity']))
+            list_emitters.append(DiskEmitter(emitter['parameters']['position'], emitter['parameters']['radius'],emitter['parameters']['direction'], emitter['parameters']['rate'], emitter['particles']['mass'], emitter['particles']['lifetime'][0], emitter['particles']['lifetime'][1], emitter['particles']['velocity']))
         
     for force in forces:
         if force['type'] == "drag": 
@@ -72,7 +72,9 @@ def run_simulation(emiters, forces):
 
     x_rotation = y_rotation = 0
     clock = pygame.time.Clock()
-    points = []
+    particles = []
+
+    time_interval = 1.0
    
     # Main loop
     while True: #TODO: add forces and updating the points
@@ -97,45 +99,69 @@ def run_simulation(emiters, forces):
         
         for emitter in emiters: 
             if isinstance(emitter, PointEmitter):
-                em_x, em_y, em_z = emitter.position
-                for _ in range(emitter.rate): 
-                    direction = np.random.randn(3)
-                    speed = random.uniform(0.1, 1.0)
+                time_elapsed = 0
+                while time_elapsed < time_interval:
+                    # Generate the next emission time using exponential distribution
+                    delta_t = -np.log(1 - random.random()) / emitter.rate
+                    time_elapsed += delta_t
+                    
+                    if time_elapsed < time_interval: 
+                        em_x, em_y, em_z = emitter.position
+                        
+                        direction = np.random.randn(3)
+                        speed = random.uniform(0.1, 1.0)
 
-                    # Set the velocity vector
-                    velocity = direction * speed
-
-                    points.append([em_x, em_y, em_z, velocity[0], velocity[1], velocity[2], 0.0])
+                        # Set the velocity vector
+                        velocity = direction * speed
+                        particle = Particle(emitter, velocity)
+                        particles.append(particle)
+                        # points.append([em_x, em_y, em_z, velocity[0], velocity[1], velocity[2], 0.0])
             elif isinstance(emitter, DiskEmitter):
-                em_x, em_y, em_z = emitter.position  
-                em_x = em_x + random.uniform(-emitter.radius, emitter.radius)
-                em_y = em_y + random.uniform(-emitter.radius, emitter.radius)
-                for _ in range(emitter.rate): 
-                    direction = emitter.direction
-                    speed = 1
+                time_elapsed = 0
+                while time_elapsed < time_interval:
+                    delta_t = -np.log(1 - random.random()) / emitter.rate
+                    time_elapsed += delta_t
+                    
+                    if time_elapsed < time_interval: 
+                        em_x, em_y, em_z = emitter.position  
+                        em_x = em_x + random.uniform(-emitter.radius/2, emitter.radius/2)
+                        em_y = em_y + random.uniform(-emitter.radius/2, emitter.radius/2)
+                        
+                        opposite_vector = [- component for component in emitter.direction]
+                        direction = random.choice([opposite_vector, emitter.direction])
+                        speed = 1
 
-                    # Set the velocity vector
-                    velocity = direction * speed
+                        # Set the velocity vector
+                        velocity = direction * speed
+                        particle = Particle(emitter, velocity)
+                        particles.append(particle)
+                        # points.append([em_x, em_y, em_z, velocity[0], velocity[1], velocity[2], 0.0])
+            
 
-                    points.append([em_x, em_y, em_z, velocity[0], velocity[1], velocity[2], 0.0])
-                
 
+        # new_points = []
+        # for point in points:
+        #     for force in forces:
+        #         point[3] += force[0] * dt  # Apply force to velocity x
+        #         point[4] += force[1] * dt  # Apply force to velocity y
+        #         point[5] += force[2] * dt  # Apply force to velocity z
 
-        new_points = []
-        for point in points:
-            for force in forces:
-                point[3] += force[0] * dt  # Apply force to velocity x
-                point[4] += force[1] * dt  # Apply force to velocity y
-                point[5] += force[2] * dt  # Apply force to velocity z
-
-            # Update position based on velocity
-            for i in range(3):
-                point[i] += point[i + 3] * dt
+        #     # Update position based on velocity
+        #     for i in range(3):
+        #         point[i] += point[i + 3] * dt
            
-            point[6] += dt  # Increment age
-            if point[6] < 5.0:  # Keep points younger than 5 seconds
-                new_points.append(point)
-        points = new_points
+        #     point[6] += dt  # Increment age
+        #     if point[6] < 0.8:  # Keep points younger than 5 seconds
+        #         new_points.append(point)
+        # points = new_points
+
+        # Update particles with forces
+        new_particles = []
+        for particle in particles:
+            particle.update(dt, forces)
+            if particle.age < particle.lifetime:
+                new_particles.append(particle)
+        particles = new_particles
         
         # Clear the screen and depth buffer
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
@@ -163,24 +189,33 @@ def run_simulation(emiters, forces):
 
         for emitter in emiters: 
             if isinstance(emitter, DiskEmitter):
-                glColor3f(1, 1, 1)  # Set disk color to red
-                draw_disk(emitter.position, emitter.radius, 32)
+                glColor3f(1, 1, 0)  # Set disk color to red
+                draw_disk(emitter.position, emitter.radius/2, 32)
         
 
         # Render points with color based on age
-        for point in points:
-            age = point[3]
-            # Calculate color based on age
-            color = (1.0 , 0.0 + age / 5.0, 0.0)  # Red component decreases with age
-            glColor3f(*color)
-                     # Calculate distance from point to the camera
-            distance = np.linalg.norm(point[:3])
+        for particle in particles:
+            # age = point[3]
+            # # Calculate color based on age
+            # color = (1.0 , 0.0 + age / 5.0, 0.0)  # Red component decreases with age
+            # glColor3f(*color)
+            #          # Calculate distance from point to the camera
+            # distance = np.linalg.norm(point[:3])
 
-            # Scale the point size based on distance
-            size = 5 / (distance + 1.0)  # Adjust the denominator to control the scale factor
-            glPointSize(size)# Set point size
+            # # Scale the point size based on distance
+            # size = 5 / (distance + 1.0)  # Adjust the denominator to control the scale factor
+            # glPointSize(size)# Set point size
+            # glBegin(GL_POINTS)
+            # glVertex3fv(point[:3])  # Render the point
+            # glEnd()
+            age = particle.age
+            color = (1.0, age / 1.5, 0.0)  # Red component decreases with age
+            glColor3f(*color)
+            distance = np.linalg.norm(particle.position)
+            size = 5 / (distance + 1.0)
+            glPointSize(size)
             glBegin(GL_POINTS)
-            glVertex3fv(point[:3])  # Render the point
+            glVertex3fv(particle.position)
             glEnd()
 
         pygame.display.flip()
@@ -201,11 +236,11 @@ def main():
             emiters, forces = read_json('06-stress.json')
     else:
         emiters, forces = read_json('01-point.json')
+
     for force in forces:
         print(force)
 
-    #TODO: take this out, just for testing gravuty
-    forces = [(0,-9.81,0)]
+  
     run_simulation(emiters, forces)
 
 if __name__ == "__main__":

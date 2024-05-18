@@ -1,13 +1,14 @@
 
-from particle import Particle
+
 
 class PointEmitter:
-    def __init__(self, position, rate, particles_mass, particles_lifetime, particles_velocity):
+    def __init__(self, position, rate, particles_mass, particles_lifetime_a, particles_lifetime_b, particles_velocity):
         self.position = position
         self.rate = rate
         self.time_since_last_emit = 0
         self.particles_mass = particles_mass
-        self.particles_lifetime = particles_lifetime
+        self.particles_lifetime_a = particles_lifetime_a
+        self.particles_lifetime_b = particles_lifetime_b
         self.particles_velocity = particles_velocity
 
     def emit_particles(self, dt):
@@ -21,15 +22,16 @@ class PointEmitter:
             self.time_since_last_emit = 0
 
 class DiskEmitter:
-    def __init__(self, position, radius, direction, rate, particles_mass, particles_lifetime, particles_velocity):
+    def __init__(self, position, radius, direction, rate, particles_mass, particles_lifetime_a, particles_lifetime_b, particles_velocity):
         self.position = position
         self.radius = radius
         self.direction = direction
         self.rate = rate
         self.time_since_last_emit = 0
         self.particles_mass = particles_mass
-        self.particles_lifetime = particles_lifetime
-        self.particle_velocity = particles_velocity
+        self.particles_lifetime_a = particles_lifetime_a
+        self.particles_lifetime_b = particles_lifetime_b
+        self.particles_velocity = particles_velocity
 
 
     def emit_particles(self, dt):
