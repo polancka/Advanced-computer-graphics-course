@@ -100,14 +100,13 @@ def main(points):
     y = surface_points[:, 1]  # Extract y coordinates from the second column
     z = surface_points[:, 2]  # Extract z coordinates from the third column
     parameters = fit_surface(x, y, z, initial_guess)
-    print(parameters)
     x_range = (-40, 40)  # Range of x values
     y_range = (-40, 40)  # Range of y values
     num_points = 100  # Number of points in the grid
     plane_points = visualize_surface(parameters, x_range, y_range, num_points, points)
 
     #visualize_surface_2D(points, plane_points)
-
+    return parameters
 
 if __name__ == "__main__":
     main()

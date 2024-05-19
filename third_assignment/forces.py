@@ -35,3 +35,5 @@ class RadialForce:
         if distance > 0:
             force = self.s * direction / distance
             return particle.velocity +force * dt
+        else: 
+            return particle.velocity

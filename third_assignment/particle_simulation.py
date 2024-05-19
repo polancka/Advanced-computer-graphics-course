@@ -25,9 +25,9 @@ def read_json(file_name):
 
     for emitter in emitters:
         if emitter['type'] == "point":
-            list_emitters.append(PointEmitter(emitter['parameters']['position'], emitter['parameters']['rate'], emitter['particles']['mass'], emitter['particles']['lifetime'][0], emitter['particles']['lifetime'][1],emitter['particles']['velocity']))
+            list_emitters.append(PointEmitter(emitter['parameters']['position'], emitter['parameters']['rate'], emitter['particles']['mass'], emitter['particles']['lifetime'][0], emitter['particles']['lifetime'][1],emitter['particles']['velocity'][0],emitter['particles']['velocity'][1] ))
         elif emitter['type'] == "disk":
-            list_emitters.append(DiskEmitter(emitter['parameters']['position'], emitter['parameters']['radius'],emitter['parameters']['direction'], emitter['parameters']['rate'], emitter['particles']['mass'], emitter['particles']['lifetime'][0], emitter['particles']['lifetime'][1], emitter['particles']['velocity']))
+            list_emitters.append(DiskEmitter(emitter['parameters']['position'], emitter['parameters']['radius'],emitter['parameters']['direction'], emitter['parameters']['rate'], emitter['particles']['mass'], emitter['particles']['lifetime'][0], emitter['particles']['lifetime'][1], emitter['particles']['velocity'][0],emitter['particles']['velocity'][1]))
         
     for force in forces:
         if force['type'] == "drag": 
@@ -66,9 +66,15 @@ def run_simulation(emiters, forces):
     pygame.display.set_mode(display, DOUBLEBUF|OPENGL)
     glEnable(GL_DEPTH_TEST)
 
-    # Set up the camera
-    gluPerspective(60, (display[0]/display[1]), 0.1, 100.0)
-    glTranslatef(7, 3, -10)
+    # Set up the projection matrix
+    glMatrixMode(GL_PROJECTION)
+    glLoadIdentity()
+    gluPerspective(60, (display[0] / display[1]), 0.1, 100.0)
+    
+    # Set up the modelview matrix
+    glMatrixMode(GL_MODELVIEW)
+    glLoadIdentity()
+    glTranslatef(0, 0, -10)  
 
     x_rotation = y_rotation = 0
     clock = pygame.time.Clock()
@@ -79,7 +85,7 @@ def run_simulation(emiters, forces):
     # Main loop
     while True: #TODO: add forces and updating the points
 
-        dt = clock.tick(60) / 1000.0 #TODO: replace this with Poisson
+        dt = clock.tick(60) / 1000.0 
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -109,13 +115,14 @@ def run_simulation(emiters, forces):
                         em_x, em_y, em_z = emitter.position
                         
                         direction = np.random.randn(3)
-                        speed = random.uniform(0.1, 1.0)
+                        speed = random.uniform(emitter.particles_velocity_a, emitter.particles_velocity_b)
 
                         # Set the velocity vector
                         velocity = direction * speed
                         particle = Particle(emitter, velocity)
                         particles.append(particle)
                         # points.append([em_x, em_y, em_z, velocity[0], velocity[1], velocity[2], 0.0])
+            
             elif isinstance(emitter, DiskEmitter):
                 time_elapsed = 0
                 while time_elapsed < time_interval:
@@ -164,8 +171,10 @@ def run_simulation(emiters, forces):
         particles = new_particles
         
         # Clear the screen and depth buffer
-        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glLoadIdentity()  # Reset the view
+        glTranslatef(0, 0, -10)  # Reset the camera position each frame
+
 
         # Apply rotations based on keyboard input
         glRotatef(x_rotation, 1, 0, 0)
@@ -175,17 +184,17 @@ def run_simulation(emiters, forces):
         glBegin(GL_LINES)
         # x-axis (red)
         glColor3f(1.0, 0.0, 0.0)
-        glVertex3f(-5.0, 0.0, 0.0)
-        glVertex3f(5.0, 0.0, 0.0)
+        glVertex3f(-10.0, 0.0, 0.0)
+        glVertex3f(10.0, 0.0, 0.0)
         # y-axis (green)
         glColor3f(0.0, 1.0, 0.0)
-        glVertex3f(0.0, -5.0, 0.0)
-        glVertex3f(0.0, 5.0, 0.0)
+        glVertex3f(0.0, -10.0, 0.0)
+        glVertex3f(0.0, 10.0, 0.0)
         # z-axis (blue)
         glColor3f(0.0, 0.0, 1.0)
-        glVertex3f(0.0, 0.0, -5.0)
-        glVertex3f(0.0, 0.0, 5.0)
-        glEnd() 
+        glVertex3f(0.0, 0.0, -10.0)
+        glVertex3f(0.0, 0.0, 10.0)
+        glEnd()
 
         for emitter in emiters: 
             if isinstance(emitter, DiskEmitter):

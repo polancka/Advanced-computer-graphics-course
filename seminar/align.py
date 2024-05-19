@@ -45,7 +45,7 @@ def make_envelope_obb(points):
     Mx, _, _ = mean
     Ox, _, _ = obb.center
     diff_x = Mx - Ox
-    print(diff_x)
+   
 
     # If the difference is positive, rotate the uterus about the x-axis by 180 degrees
     if diff_x > 0:
@@ -68,20 +68,20 @@ def make_envelope_obb(points):
 
     return aligned_points
 
-def xy_project(aligned_points):
+def zy_project(aligned_points):
     # Assuming 'aligned_points' is your numpy array of shape (n, 3)
     pcd_aligned = o3d.geometry.PointCloud()
     pcd_aligned.points = o3d.utility.Vector3dVector(aligned_points)
 
     # Project the aligned point cloud onto the XY plane
     projected_points = np.array(pcd_aligned.points)
-    projected_points[:, 2] = 0  # Set z-coordinates to zero
+    projected_points[:, 0] = 0  # Set z-coordinates to zero
 
     # Create a new point cloud with the projected points
     pcd_projected = o3d.geometry.PointCloud()
     pcd_projected.points = o3d.utility.Vector3dVector(projected_points)
     axis_lines = [
-        np.array([[-50, 0, 0], [50, 0, 0]]),  # x-axis (red)
+        np.array([[0, 0, -50], [0, 0, 50]]),  # z-axis (red)
         np.array([[0,-50, 0], [0, 50, 0]]),  # y-axis (green)
     ]
     # Convert axis lines to Open3D geometry
@@ -95,8 +95,8 @@ def main(points):
     print("aligning...")
     center_points = center_cloud(points) #not necessary, a precaution
     aligned_points = make_envelope_obb(center_points)
-    xy_points = xy_project(aligned_points)
-    return aligned_points, xy_points
+    zy_points = zy_project(aligned_points)
+    return aligned_points, zy_points
   
     
 if __name__ == "__main__":
