@@ -5,7 +5,8 @@ def calculate_mid_sagittal_plane(points):
     # Calculate the mean y-coordinate for the mid-sagittal plane
     
     mean_y = np.mean(points[:, 1])
-    return mean_y
+    sd_y = np.std(points[:,1])
+    return mean_y, sd_y
 
 def create_sagittal_plane(mean_y, x_range, z_range):
     # Create a plane geometry at the mean_y position
@@ -23,58 +24,35 @@ def create_sagittal_plane(mean_y, x_range, z_range):
     plane.paint_uniform_color([0.1, 0.9, 0.1])  # Color the plane green
     return plane
 
+def few_points(points, mean_y, sd_y):
+    new_points = []
+    for point in points:
+        if point[1] <= (mean_y + sd_y) and point[1] >= (mean_y - sd_y):
+            new_points.append(point)
 
-def filter_points_on_plane(points, mean_y, tol=1e-6):
-    # Filter points with y-coordinate close to mean_y
-    filtered_points = [p for p in points if abs(p[1] - mean_y) < tol]
-    return np.array(filtered_points)
+    # Visualize the aligned point cloud
+    # Create axis lines
+    axis_lines = [
+        np.array([[-50, 0, 0], [50, 0, 0]]),  # x-axis (red)
+        np.array([[0,-50, 0], [0, 50, 0]]),  # y-axis (green)
+        np.array([[0, 0, -50], [0, 0, 50]])   # z-axis (blue)
+    ]
+    # Convert axis lines to Open3D geometry
+    axis_line_geometries = [o3d.geometry.LineSet(points=o3d.utility.Vector3dVector(axis_line), lines=o3d.utility.Vector2iVector([[0, 1]])) for axis_line in axis_lines]
 
-def visualize_points_on_plane(points_on_plane):
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(points_on_plane)
-
-    vis = o3d.visualization.Visualizer()
-    vis.create_window()
-    vis.add_geometry(pcd)
-
-    vis.run()
-    vis.destroy_window()
-
-
-def visualize_point_cloud_with_plane(points, plane):
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(points)
+    pcd_aligned = o3d.geometry.PointCloud()
+    pcd_aligned.points = o3d.utility.Vector3dVector(new_points)
+    o3d.visualization.draw_geometries([pcd_aligned] + axis_line_geometries)
     
-    # Calculate the range of points
-    x_range = [np.min(points[:, 0]) - 1, np.max(points[:, 0]) + 1]
-    y_range = [np.min(points[:, 1]) -1 , np.max(points[:, 1])+ 1 ]
-    z_range = [np.min(points[:, 2]) - 1, np.max(points[:, 2])+ 1 ]
-   
-
-    vis = o3d.visualization.Visualizer()
-    vis.create_window()
-    vis.add_geometry(pcd)
-    vis.add_geometry(plane)
-
-
-    vis.run()
-    vis.destroy_window()
-
-def main(points): 
+def main(): #change back to (points) when excetuing the semianr.py file
+    points = np.loadtxt('point_cloud.csv', delimiter=',')
     print("calculating the mid-sagittal plane ...")
     points_array = np.array(points)
-    mean_y = calculate_mid_sagittal_plane(points_array)
+    mean_y, sd_y = calculate_mid_sagittal_plane(points_array)
     x_range = [np.min(points_array[:, 0]), np.max(points_array[:, 0])]
     z_range = [np.min(points_array[:, 2]), np.max(points_array[:, 2])]
+    few_points(points, mean_y, sd_y)
     sagittal_plane = create_sagittal_plane(mean_y, x_range, z_range)
-
-    visualize_point_cloud_with_plane(points_array, sagittal_plane)
-    # Filter points lying on the mid-sagittal plane
-    points_on_plane = filter_points_on_plane(points_array, mean_y)
-
-    visualize_points_on_plane(points_on_plane)
-
-
 
 if __name__ == "__main__":
     main()
